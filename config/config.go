@@ -29,7 +29,7 @@ var configurations *Config
 
 func loadConfig() {
 
-	err := godotenv.Load()
+	err := godotenv.Overload()
 	if err != nil {
 		fmt.Println("Failed to load .env file")
 		os.Exit(1)

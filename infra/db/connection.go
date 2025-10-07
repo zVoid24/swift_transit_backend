@@ -5,6 +5,7 @@ import (
 	"swift_transit/config"
 
 	"github.com/jmoiron/sqlx"
+	_ "github.com/lib/pq"
 )
 
 func GetConnectionString(dbCnf *config.DbConfig) string {
@@ -15,7 +16,7 @@ func GetConnectionString(dbCnf *config.DbConfig) string {
 		dbCnf.Port,
 		dbCnf.Name)
 	if !dbCnf.EnableSSLMode {
-		conStr += " sslmode=desable"
+		conStr += " sslmode=disable"
 	}
 
 	return conStr

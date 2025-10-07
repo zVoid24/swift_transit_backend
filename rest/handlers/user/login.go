@@ -13,6 +13,7 @@ type LoginRequest struct {
 // LoginResponse represents JSON response
 type LoginResponse struct {
 	Message string      `json:"message"`
+	JWT     string      `json:"jwt,omitempty"`
 	User    interface{} `json:"user,omitempty"`
 }
 
@@ -51,9 +52,14 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Success
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(LoginResponse{
+	jwt, err := h.utilHandler.CreateJWT(user)
+	if err != nil {
+		h.utilHandler.SendError(w, LoginResponse{Message: "Failed to generate JWT"}, http.StatusBadRequest)
+	}
+	h.utilHandler.SendData(w, LoginResponse{
 		Message: "Login successful",
+		JWT:     jwt,
 		User:    user,
-	})
+	}, http.StatusOK)
+
 }

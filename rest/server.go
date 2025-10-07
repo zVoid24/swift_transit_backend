@@ -8,9 +8,11 @@ import (
 
 func (h *Handler) Serve() {
 	mux := http.NewServeMux()
+	h.userHandler.RegisterRoutes(mux)
 	mngr := h.mdlw.NewManager()
 	mngr.Use(h.mdlw.Logger, h.mdlw.Cors)
 	wrappedMux := mngr.WrapMux(mux)
+
 	//InitRoutes(mux, *mngr)
 	fmt.Println("Server running on", h.cnf.HttpPort)
 	port := ":" + h.cnf.HttpPort

@@ -1,13 +1,21 @@
 package user
 
-import "swift_transit/repo"
+import (
+	"swift_transit/repo"
+	"swift_transit/rest/middlewares"
+	"swift_transit/utils"
+)
 
 type Handler struct {
-	UserRepo repo.UserRepo
+	UserRepo    repo.UserRepo
+	mngr        *middlewares.Manager
+	utilHandler *utils.Handler
 }
 
-func NewHandler(userRepo repo.UserRepo) *Handler {
+func NewHandler(userRepo repo.UserRepo, mngr *middlewares.Manager, utilHandler *utils.Handler) *Handler {
 	return &Handler{
-		UserRepo: userRepo,
+		UserRepo:    userRepo,
+		mngr:        mngr,
+		utilHandler: utilHandler,
 	}
 }

@@ -1,11 +1,13 @@
 package utils
 
-type Handler struct{
+import "swift_transit/config"
 
+type Handler struct {
+	cnf *config.Config
 }
 
-func NewHandler() *Handler {
+func NewHandler(cnf *config.Config) *Handler {
 	return &Handler{
-		
+		cnf: cnf,
 	}
 }
