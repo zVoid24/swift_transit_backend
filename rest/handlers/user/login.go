@@ -44,7 +44,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check credentials
-	user, err := h.UserRepo.Find(req.UserName, req.Password)
+	user, err := h.svc.Find(req.UserName, req.Password)
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 		json.NewEncoder(w).Encode(LoginResponse{Message: "Invalid username or password"})

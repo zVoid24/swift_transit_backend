@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"swift_transit/repo"
+	"swift_transit/domain"
 )
 
 type RegisterRequest struct {
@@ -32,7 +32,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create the user struct
-	user := repo.User{
+	user := domain.User{
 		Name:      req.Name,
 		UserName:  req.UserName,
 		Email:     req.Email,
@@ -42,7 +42,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Call the Create method from the UserRepo to create the user
-	createdUser, err := h.UserRepo.Create(user) // Assume userRepo is a global or injected dependency
+	createdUser, err := h.svc.Create(user) // Assume userRepo is a global or injected dependency
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Failed to create user: %s", err.Error()), http.StatusInternalServerError)
 		return
