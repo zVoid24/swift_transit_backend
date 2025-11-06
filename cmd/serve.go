@@ -5,9 +5,10 @@ import (
 	"swift_transit/infra/db"
 	"swift_transit/repo"
 	"swift_transit/rest"
-	"swift_transit/rest/handlers/user"
+	userHandler "swift_transit/rest/handlers/user"
 	"swift_transit/rest/middlewares"
 	"swift_transit/utils"
+	"swift_transit/user"
 )
 
 func Start() {
@@ -23,8 +24,13 @@ func Start() {
 		panic(err)
 	}
 	utilHandler := utils.NewHandler(cnf)
+	//repos
 	userRepo := repo.NewUserRepo(dbCon)
-	userHandler := user.NewHandler(userRepo, mngr, utilHandler)
+
+	//domains
+	usrSvc:=user.NewService(userRepo)
+
+	userHandler := userHandler.NewHandler(usrSvc, mngr, utilHandler)
 	handler := rest.NewHandler(cnf, middlewareHandler, userHandler)
 	handler.Serve()
 }

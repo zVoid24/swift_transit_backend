@@ -2,26 +2,16 @@ package repo
 
 import (
 	"fmt"
+	"swift_transit/domain"
+	"swift_transit/user"
 
 	"github.com/jmoiron/sqlx"
 	"golang.org/x/crypto/bcrypt"
 )
 
-// User struct
-type User struct {
-	Id        int64   `json:"id" db:"id"`
-	Name      string  `json:"name" db:"name"`
-	UserName  string  `json:"username" db:"username"`
-	Email     string  `json:"email" db:"email"`
-	Password  string  `json:"password" db:"password"`
-	IsStudent bool    `json:"is_student" db:"is_student"`
-	Balance   float32 `json:"balance" db:"balance"`
-}
-
 // UserRepo interface
 type UserRepo interface {
-	Find(userName, password string) (*User, error) // login
-	Create(user User) (*User, error)               // create new user
+	user.UserRepo
 }
 
 // userRepo struct
@@ -37,7 +27,7 @@ func NewUserRepo(dbCon *sqlx.DB) UserRepo {
 }
 
 // Create new user with hashed password
-func (r *userRepo) Create(user User) (*User, error) {
+func (r *userRepo) Create(user domain.User) (*domain.User, error) {
 	// Hash the password
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
@@ -50,7 +40,7 @@ func (r *userRepo) Create(user User) (*User, error) {
 		RETURNING id, name, username, email, is_student, balance
 	`
 
-	createdUser := User{}
+	createdUser := domain.User{}
 	err = r.dbCon.Get(
 		&createdUser,
 		query,
@@ -69,8 +59,8 @@ func (r *userRepo) Create(user User) (*User, error) {
 }
 
 // Find user by username and verify password (login)
-func (r *userRepo) Find(userName, password string) (*User, error) {
-	user := User{}
+func (r *userRepo) Find(userName, password string) (*domain.User, error) {
+	user := domain.User{}
 	query := `SELECT id, name, username, email, password, is_student, balance FROM users WHERE username=$1`
 
 	err := r.dbCon.Get(&user, query, userName)

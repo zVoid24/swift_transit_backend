@@ -2,7 +2,6 @@ package user
 
 import (
 	"swift_transit/domain"
-	"swift_transit/user"
 )
 
 type service struct {
@@ -15,5 +14,23 @@ func NewService(usrRepo UserRepo) Service {
 	}
 }
 
-func (user.Service) Create(user domain.User) (*domain.User, error)
-func (user.Service) Find(username string, password string) (*domain.User, error)
+func (svc *service) Create(user domain.User) (*domain.User, error) {
+	usr,err:=svc.userRepo.Create(user)
+	if err != nil{
+		return nil,err
+	}
+	if usr == nil{
+		return nil,nil
+	}
+	return usr,nil
+}
+func (svc *service) Find(username string, password string) (*domain.User, error) {
+	usr,err:=svc.userRepo.Find(username,password)
+	if err!=nil{
+		return nil,err
+	}
+	if usr == nil{
+		return nil,nil
+	}
+	return usr,nil
+}
