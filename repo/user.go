@@ -1,9 +1,11 @@
 package repo
 
 import (
+	"context"
 	"fmt"
 	"swift_transit/domain"
 	"swift_transit/user"
+	"swift_transit/utils"
 
 	"github.com/jmoiron/sqlx"
 	"golang.org/x/crypto/bcrypt"
@@ -16,14 +18,39 @@ type UserRepo interface {
 
 // userRepo struct
 type userRepo struct {
-	dbCon *sqlx.DB
+	dbCon       *sqlx.DB
+	utilHandler *utils.Handler
 }
 
 // Constructor
-func NewUserRepo(dbCon *sqlx.DB) UserRepo {
+func NewUserRepo(dbCon *sqlx.DB, utilHandler *utils.Handler) UserRepo {
 	return &userRepo{
-		dbCon: dbCon,
+		dbCon:       dbCon,
+		utilHandler: utilHandler,
 	}
+}
+
+func (r *userRepo) Info(ctx context.Context) (*domain.User, error) {
+	// Extract the user data from context
+	userData := r.utilHandler.GetUserFromContext(ctx)
+
+	// Assert it’s a map[string]interface{} (how JSON was unmarshaled)
+	dataMap, ok := userData.(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("invalid user data format")
+	}
+
+	// Convert map fields into domain.User
+	user := &domain.User{
+		Id:        int64(dataMap["id"].(float64)), // JSON numbers become float64
+		Name:      dataMap["name"].(string),
+		UserName:  dataMap["username"].(string),
+		Email:     dataMap["email"].(string),
+		IsStudent: dataMap["is_student"].(bool),
+		Balance:   float32(dataMap["balance"].(float64)), // convert float64 → float32
+	}
+
+	return user, nil
 }
 
 // Create new user with hashed password

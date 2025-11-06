@@ -6,15 +6,17 @@ import (
 )
 
 type Handler struct {
-	svc         Service
-	mngr        *middlewares.Manager
-	utilHandler *utils.Handler
+	svc               Service
+	middlewareHandler *middlewares.Handler
+	mngr              *middlewares.Manager
+	utilHandler       *utils.Handler
 }
 
-func NewHandler(svc Service, mngr *middlewares.Manager, utilHandler *utils.Handler) *Handler {
+func NewHandler(svc Service, middlewareHandler *middlewares.Handler, mngr *middlewares.Manager, utilHandler *utils.Handler) *Handler {
 	return &Handler{
-		svc:         svc,
-		mngr:        mngr,
-		utilHandler: utilHandler,
+		svc:               svc,
+		middlewareHandler: middlewareHandler,
+		mngr:              mngr,
+		utilHandler:       utilHandler,
 	}
 }

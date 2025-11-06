@@ -7,13 +7,14 @@ import (
 	"swift_transit/rest"
 	userHandler "swift_transit/rest/handlers/user"
 	"swift_transit/rest/middlewares"
-	"swift_transit/utils"
 	"swift_transit/user"
+	"swift_transit/utils"
 )
 
 func Start() {
 	cnf := config.Load()
-	middlewareHandler := middlewares.NewHandler()
+	utilHandler := utils.NewHandler(cnf)
+	middlewareHandler := middlewares.NewHandler(utilHandler)
 	mngr := middlewareHandler.NewManager()
 	dbCon, err := db.NewConnection(&cnf.Db)
 	if err != nil {
@@ -23,14 +24,14 @@ func Start() {
 	if err != nil {
 		panic(err)
 	}
-	utilHandler := utils.NewHandler(cnf)
+
 	//repos
-	userRepo := repo.NewUserRepo(dbCon)
+	userRepo := repo.NewUserRepo(dbCon, utilHandler)
 
 	//domains
-	usrSvc:=user.NewService(userRepo)
+	usrSvc := user.NewService(userRepo)
 
-	userHandler := userHandler.NewHandler(usrSvc, mngr, utilHandler)
+	userHandler := userHandler.NewHandler(usrSvc, middlewareHandler, mngr, utilHandler)
 	handler := rest.NewHandler(cnf, middlewareHandler, userHandler)
 	handler.Serve()
 }

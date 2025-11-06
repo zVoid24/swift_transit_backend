@@ -1,9 +1,13 @@
 package middlewares
 
-type Handler struct{
+import "swift_transit/utils"
 
+type Handler struct {
+	utilHandler *utils.Handler
 }
 
-func NewHandler() *Handler {
-	return &Handler{}
+func NewHandler(utilHandler *utils.Handler) *Handler {
+	return &Handler{
+		utilHandler: utilHandler,
+	}
 }
