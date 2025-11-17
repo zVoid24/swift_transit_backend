@@ -17,12 +17,20 @@ type DbConfig struct {
 	EnableSSLMode bool
 }
 
+type RedisConfig struct {
+	Address  string
+	Port     string
+	Password string
+	DB       int
+}
+
 type Config struct {
 	Version     string
 	HttpPort    string
 	ServiceName string
 	Secret      string
 	Db          DbConfig
+	RedisCnf    RedisConfig
 }
 
 var configurations *Config
@@ -39,11 +47,22 @@ func loadConfig() {
 	httpPort := os.Getenv("HTTP_PORT")
 	serviceName := os.Getenv("SERVICE_NAME")
 	secret := os.Getenv("SECRET")
+	redisAdr := os.Getenv("REDIS_ADDRESS")
+	rdsPort := os.Getenv("REDIS_PORT")
+	redisPass := os.Getenv("REDIS_PASSWORD")
+	redisDb := os.Getenv("REDIS_DB")
 
-	if version == "" || httpPort == "" || serviceName == "" || secret == "" {
+	if version == "" || httpPort == "" || serviceName == "" || secret == "" || redisAdr == "" || rdsPort == "" {
 		fmt.Println("Missing required app env variables")
 		os.Exit(1)
 	}
+
+	redisDB, err := strconv.Atoi(redisDb)
+	if err != nil {
+		fmt.Println("Invalid Redis DB value in .env")
+		os.Exit(1)
+	}
+	redisAddress := redisAdr + ":" + rdsPort
 
 	host := os.Getenv("HOST")
 	user := os.Getenv("USER")
@@ -81,6 +100,11 @@ func loadConfig() {
 			Name:          dbName,
 			Password:      password,
 			EnableSSLMode: enableSSL,
+		},
+		RedisCnf: RedisConfig{
+			Address:  redisAddress,
+			Password: redisPass,
+			DB:       redisDB,
 		},
 	}
 }

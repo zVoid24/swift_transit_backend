@@ -1,8 +1,11 @@
 package cmd
 
 import (
+	"context"
+	"fmt"
 	"swift_transit/config"
 	"swift_transit/infra/db"
+	redisConf "swift_transit/infra/redis"
 	"swift_transit/repo"
 	"swift_transit/rest"
 	userHandler "swift_transit/rest/handlers/user"
@@ -12,10 +15,27 @@ import (
 )
 
 func Start() {
+	ctx := context.Background()
 	cnf := config.Load()
 	utilHandler := utils.NewHandler(cnf)
 	middlewareHandler := middlewares.NewHandler(utilHandler)
 	mngr := middlewareHandler.NewManager()
+	redisCon, err := redisConf.NewConnection(&cnf.RedisCnf, ctx)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(redisCon)
+	// err = redisCon.Set(ctx, "name", "zahid", 0).Err()
+	// if err != nil {
+	// 	fmt.Println(err.Error())
+	// 	panic(err)
+	// }
+	// val, err := redisCon.Get(ctx, "name").Result()
+	// if err != nil {
+	// 	fmt.Println(err.Error())
+	// 	panic(err)
+	// }
+	// fmt.Println(val)
 	dbCon, err := db.NewConnection(&cnf.Db)
 	if err != nil {
 		panic(err)
