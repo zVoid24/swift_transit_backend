@@ -1,6 +1,10 @@
 package middlewares
 
-import "net/http"
+import (
+	"bytes"
+	"io"
+	"net/http"
+)
 
 func (h *Handler) Cors(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -16,6 +20,19 @@ func (h *Handler) Cors(next http.Handler) http.Handler {
 			return
 		}
 
+		// Read and reset the body to ensure it's available for the next handler
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, "Failed to read request body", http.StatusInternalServerError)
+			return
+		}
+		// Close the original body
+		r.Body.Close()
+
+		// Reassign the body to r.Body for the next handler
+		r.Body = io.NopCloser(bytes.NewBuffer(body))
+
+		// Pass the request to the next handler
 		next.ServeHTTP(w, r)
 	})
 }

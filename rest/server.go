@@ -9,6 +9,7 @@ import (
 func (h *Handler) Serve() {
 	mux := http.NewServeMux()
 	h.userHandler.RegisterRoutes(mux)
+	h.routeHandler.RegisterRoutes(mux)
 	mngr := h.mdlw.NewManager()
 	mngr.Use(h.mdlw.Logger, h.mdlw.Cors)
 	wrappedMux := mngr.WrapMux(mux)

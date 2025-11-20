@@ -8,8 +8,10 @@ import (
 	redisConf "swift_transit/infra/redis"
 	"swift_transit/repo"
 	"swift_transit/rest"
+	routeHandler "swift_transit/rest/handlers/route"
 	userHandler "swift_transit/rest/handlers/user"
 	"swift_transit/rest/middlewares"
+	"swift_transit/route"
 	"swift_transit/user"
 	"swift_transit/utils"
 )
@@ -47,11 +49,14 @@ func Start() {
 
 	//repos
 	userRepo := repo.NewUserRepo(dbCon, utilHandler)
+	routeRepo := repo.NewRouteRepo(dbCon, utilHandler)
 
 	//domains
 	usrSvc := user.NewService(userRepo)
+	routeSvc := route.NewService(routeRepo)
 
 	userHandler := userHandler.NewHandler(usrSvc, middlewareHandler, mngr, utilHandler)
-	handler := rest.NewHandler(cnf, middlewareHandler, userHandler)
+	routeHandler := routeHandler.NewHandler(routeSvc, middlewareHandler, mngr, utilHandler)
+	handler := rest.NewHandler(cnf, middlewareHandler, userHandler, routeHandler)
 	handler.Serve()
 }

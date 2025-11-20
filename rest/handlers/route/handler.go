@@ -1,13 +1,22 @@
 package route
 
-import "swift_transit/rest/middlewares"
+import (
+	"swift_transit/rest/middlewares"
+	"swift_transit/utils"
+)
 
 type Handler struct {
-	mngr middlewares.Manager
+	svc               Service
+	middlewareHandler *middlewares.Handler
+	mngr              *middlewares.Manager
+	utilHandler       *utils.Handler
 }
 
-func NewHandler(mngr middlewares.Manager) *Handler {
+func NewHandler(svc Service, middlewareHandler *middlewares.Handler, mngr *middlewares.Manager, utilHandler *utils.Handler) *Handler {
 	return &Handler{
-		mngr: mngr,
+		svc:               svc,
+		middlewareHandler: middlewareHandler,
+		mngr:              mngr,
+		utilHandler:       utilHandler,
 	}
 }

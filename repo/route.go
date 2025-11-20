@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"swift_transit/domain"
 	"swift_transit/route"
 	"swift_transit/utils"
 
@@ -21,4 +22,14 @@ func NewRouteRepo(dbcon *sqlx.DB, utilHandler *utils.Handler) RouteRepo {
 		dbCon:       dbcon,
 		utilHandler: utilHandler,
 	}
+}
+
+func (r *routeRepo) Create(route domain.Route) (*domain.Route, error) {
+	return nil, nil
+}
+func (r *routeRepo) FindAll() ([]domain.Route, error) {
+	return nil, nil
+}
+func (r *routeRepo) FindByID(id int64) (*domain.Route, error) {
+	return nil, nil
 }
