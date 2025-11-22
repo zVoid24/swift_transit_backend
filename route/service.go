@@ -13,7 +13,11 @@ func NewService(repo RouteRepo) Service {
 }
 
 func (svc *service) Create(route domain.Route) (*domain.Route, error) {
-	return nil, nil
+	createdRoute, err := svc.repo.Create(route)
+	if err != nil {
+		return nil, err
+	}
+	return createdRoute, nil
 }
 func (svc *service) FindAll() ([]domain.Route, error) {
 	return nil, nil

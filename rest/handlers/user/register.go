@@ -25,9 +25,8 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 
 	// Decode the JSON request body into RegisterRequest struct
 	var req RegisterRequest
-	decoder := json.NewDecoder(r.Body)
-	if err := decoder.Decode(&req); err != nil {
-		http.Error(w, fmt.Sprintf("Error decoding request: %s", err.Error()), http.StatusBadRequest)
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.utilHandler.SendError(w, "Invalid JSON payload", http.StatusBadRequest)
 		return
 	}
 

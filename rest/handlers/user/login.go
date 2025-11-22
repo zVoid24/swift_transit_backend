@@ -21,13 +21,6 @@ type LoginResponse struct {
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	// Only allow POST
-	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		json.NewEncoder(w).Encode(LoginResponse{Message: "Method not allowed"})
-		return
-	}
-
 	// Decode JSON request
 	var req LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
