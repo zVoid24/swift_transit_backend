@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"fmt"
 	"swift_transit/domain"
 	"swift_transit/route"
 	"swift_transit/utils"
@@ -60,5 +61,23 @@ func (r *routeRepo) FindAll() ([]domain.Route, error) {
 	return nil, nil
 }
 func (r *routeRepo) FindByID(id int64) (*domain.Route, error) {
-	return nil, nil
+	var route domain.Route
+	query := `SELECT id, name, ST_AsGeoJSON(geom) as linestring_geojson FROM routes WHERE id = $1`
+	err := r.dbCon.Get(&route, query, id)
+	if err != nil {
+		return nil, err
+	}
+
+	var stops []domain.Stop
+	stopQuery := `SELECT id, route_id,stop_order,name, ST_X(geom::geometry) as lon, ST_Y(geom::geometry) as lat FROM stops WHERE route_id = $1 ORDER BY stop_order`
+
+	err = r.dbCon.Select(&stops, stopQuery, id)
+	fmt.Println(stops)
+	if err != nil {
+		return nil, err
+	}
+
+	route.Stops = stops
+
+	return &route, nil
 }

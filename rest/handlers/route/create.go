@@ -60,6 +60,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 
 	// Marshal the LineString geometry to store as LineStringGeoJSON
 	lineStringGeoJSON, err := json.Marshal(lineStringGeometry)
+	// fmt.Println(lineStringGeometry)
 	if err != nil {
 		h.utilHandler.SendError(w, "Failed to marshal LineString GeoJSON", http.StatusInternalServerError)
 		return
@@ -81,9 +82,15 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	var ls domain.LineString
+	if err := json.Unmarshal(lineStringGeoJSON, &ls); err != nil {
+		h.utilHandler.SendError(w, "Failed to unmarshal LineString", http.StatusInternalServerError)
+		return
+	}
+
 	route := domain.Route{
 		Name:              jsonData.Name,
-		LineStringGeoJSON: string(lineStringGeoJSON),
+		LineStringGeoJSON: &ls,
 		Stops:             stoppages,
 	}
 
