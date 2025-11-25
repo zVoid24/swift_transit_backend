@@ -3,11 +3,13 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"swift_transit/bus"
 	"swift_transit/config"
 	"swift_transit/infra/db"
 	redisConf "swift_transit/infra/redis"
 	"swift_transit/repo"
 	"swift_transit/rest"
+	busHandler "swift_transit/rest/handlers/bus"
 	routeHandler "swift_transit/rest/handlers/route"
 	userHandler "swift_transit/rest/handlers/user"
 	"swift_transit/rest/middlewares"
@@ -50,13 +52,16 @@ func Start() {
 	//repos
 	userRepo := repo.NewUserRepo(dbCon, utilHandler)
 	routeRepo := repo.NewRouteRepo(dbCon, utilHandler)
+	busRepo := repo.NewBusRepo(dbCon, utilHandler)
 
 	//domains
 	usrSvc := user.NewService(userRepo)
 	routeSvc := route.NewService(routeRepo)
+	busSvc := bus.NewService(busRepo)
 
 	userHandler := userHandler.NewHandler(usrSvc, middlewareHandler, mngr, utilHandler)
 	routeHandler := routeHandler.NewHandler(routeSvc, middlewareHandler, mngr, utilHandler)
-	handler := rest.NewHandler(cnf, middlewareHandler, userHandler, routeHandler)
+	busHandler := busHandler.NewHandler(busSvc, middlewareHandler, mngr, utilHandler)
+	handler := rest.NewHandler(cnf, middlewareHandler, userHandler, routeHandler, busHandler)
 	handler.Serve()
 }

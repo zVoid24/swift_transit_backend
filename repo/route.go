@@ -7,6 +7,7 @@ import (
 	"swift_transit/utils"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 )
 
 type RouteRepo interface {
@@ -40,15 +41,46 @@ func (r *routeRepo) Create(route domain.Route) (*domain.Route, error) {
 	}
 	route.Id = routeID
 
-	stopQuery := `INSERT INTO stops (route_id, name, stop_order, geom) VALUES ($1, $2, $3, ST_SetSRID(ST_MakePoint($4, $5), 4326)) RETURNING id`
-	for i, stop := range route.Stops {
-		var stopID int64
-		err = tx.QueryRowx(stopQuery, routeID, stop.Name, stop.Order, stop.Lon, stop.Lat).Scan(&stopID)
+	if len(route.Stops) > 0 {
+		var (
+			names  []string
+			orders []int
+			lons   []float64
+			lats   []float64
+		)
+
+		for _, stop := range route.Stops {
+			names = append(names, stop.Name)
+			orders = append(orders, stop.Order)
+			lons = append(lons, stop.Lon)
+			lats = append(lats, stop.Lat)
+		}
+
+		stopQuery := `
+			INSERT INTO stops (route_id, name, stop_order, geom)
+			SELECT $1, u.name, u.stop_order, ST_SetSRID(ST_MakePoint(u.lon, u.lat), 4326)
+			FROM unnest($2::text[], $3::int[], $4::float8[], $5::float8[]) AS u(name, stop_order, lon, lat)
+			RETURNING id
+		`
+
+		rows, err := tx.Queryx(stopQuery, routeID, pq.Array(names), pq.Array(orders), pq.Array(lons), pq.Array(lats))
 		if err != nil {
 			return nil, err
 		}
-		route.Stops[i].Id = stopID
-		route.Stops[i].RouteId = routeID
+		defer rows.Close()
+
+		i := 0
+		for rows.Next() {
+			var stopID int64
+			if err := rows.Scan(&stopID); err != nil {
+				return nil, err
+			}
+			if i < len(route.Stops) {
+				route.Stops[i].Id = stopID
+				route.Stops[i].RouteId = routeID
+				i++
+			}
+		}
 	}
 
 	if err := tx.Commit(); err != nil {
