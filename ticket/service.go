@@ -5,14 +5,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"swift_transit/domain"
 	"swift_transit/infra/payment"
+	"swift_transit/infra/rabbitmq"
 	"swift_transit/user"
 	"time"
 
 	"github.com/go-pdf/fpdf"
 	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
+	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/skip2/go-qrcode"
 )
 
@@ -21,93 +22,103 @@ type service struct {
 	userRepo   user.UserRepo
 	redis      *redis.Client
 	sslCommerz *payment.SSLCommerz
+	rabbitMQ   *rabbitmq.RabbitMQ
 	ctx        context.Context
 }
 
-func NewService(repo TicketRepo, userRepo user.UserRepo, redis *redis.Client, sslCommerz *payment.SSLCommerz, ctx context.Context) Service {
+func NewService(repo TicketRepo, userRepo user.UserRepo, redis *redis.Client, sslCommerz *payment.SSLCommerz, rabbitMQ *rabbitmq.RabbitMQ, ctx context.Context) Service {
 	return &service{
 		repo:       repo,
 		userRepo:   userRepo,
 		redis:      redis,
 		sslCommerz: sslCommerz,
+		rabbitMQ:   rabbitMQ,
 		ctx:        ctx,
 	}
 }
 
 func (s *service) BuyTicket(req BuyTicketRequest) (*BuyTicketResponse, error) {
-	qrCode := uuid.New().String()
-	now := time.Now().Format(time.RFC3339)
+	// 1. Validate request (basic validation)
+	if req.UserId == 0 || req.RouteId == 0 {
+		return nil, fmt.Errorf("invalid request")
+	}
 
-	ticket := domain.Ticket{
+	// 2. Create a temporary ID or use a UUID for tracking the request
+	// For simplicity, we might need to generate an ID here or let the worker handle it.
+	// However, to return a status, we need an ID.
+	// Let's generate a temporary ID or use Redis to store the initial "Processing" state.
+	// Actually, we can just return a message saying "Processing" and maybe a tracking ID.
+	// But the user wants to poll.
+	// Let's generate a UUID for the tracking ID.
+	trackingID := uuid.New().String()
+
+	// 3. Publish to RabbitMQ
+	msg := TicketRequestMessage{
 		UserId:           req.UserId,
 		RouteId:          req.RouteId,
 		BusName:          req.BusName,
 		StartDestination: req.StartDestination,
 		EndDestination:   req.EndDestination,
 		Fare:             req.Fare,
-		QRCode:           qrCode,
-		CreatedAt:        now,
+		PaymentMethod:    req.PaymentMethod,
 	}
-
-	if req.PaymentMethod == "wallet" {
-		// Deduct balance
-		err := s.userRepo.DeductBalance(req.UserId, req.Fare)
-		if err != nil {
-			return nil, fmt.Errorf("payment failed: %w", err)
-		}
-		ticket.PaidStatus = true
-	} else {
-		ticket.PaidStatus = false
-	}
-
-	// Create ticket in DB
-	createdTicket, err := s.repo.Create(ticket)
+	reqJSON, err := json.Marshal(msg)
 	if err != nil {
 		return nil, err
 	}
 
-	if req.PaymentMethod == "wallet" {
-		// Store in Redis (valid for 5 hours)
-		ticketJSON, _ := json.Marshal(createdTicket)
-		key := fmt.Sprintf("ticket:%d", createdTicket.Id)
-		fmt.Printf("DEBUG: Attempting to set Redis key: %s with value: %s\n", key, string(ticketJSON))
+	q, err := s.rabbitMQ.DeclareQueue("ticket_queue")
+	if err != nil {
+		return nil, err
+	}
 
-		err = s.redis.Set(s.ctx, key, ticketJSON, 5*time.Hour).Err()
-		if err != nil {
-			fmt.Printf("DEBUG: failed to cache ticket: %v\n", err)
-		} else {
-			fmt.Println("DEBUG: Redis Set successful")
-		}
+	err = s.rabbitMQ.Channel.Publish(
+		"",     // exchange
+		q.Name, // routing key
+		false,  // mandatory
+		false,  // immediate
+		amqp.Publishing{
+			ContentType: "application/json",
+			Body:        reqJSON,
+			Headers: amqp.Table{
+				"tracking_id": trackingID,
+			},
+		})
+	if err != nil {
+		return nil, err
+	}
 
-		val, err := s.redis.Get(s.ctx, key).Result()
-		if err != nil {
-			fmt.Printf("DEBUG: Redis Get failed immediately after Set: %v\n", err)
-		} else {
-			fmt.Printf("DEBUG: Redis Get value: %s\n", val)
-		}
+	// 4. Store initial status in Redis
+	s.redis.Set(s.ctx, fmt.Sprintf("ticket_status:%s", trackingID), "processing", 1*time.Hour)
+
+	return &BuyTicketResponse{
+		Message:     "Ticket request received. Processing...",
+		PaymentURL:  "", // Will be available later
+		DownloadURL: "",
+		TrackingID:  trackingID,
+	}, nil
+}
+
+func (s *service) GetTicketStatus(trackingID string) (*BuyTicketResponse, error) {
+	// Check Redis for status
+	val, err := s.redis.Get(s.ctx, fmt.Sprintf("ticket_status:%s", trackingID)).Result()
+	if err == redis.Nil {
+		return nil, fmt.Errorf("request not found")
+	} else if err != nil {
+		return nil, err
+	}
+
+	if val == "processing" {
 		return &BuyTicketResponse{
-			Ticket:  createdTicket,
-			Message: "Ticket purchased successfully",
-		}, nil
-	} else {
-		// Init SSLCommerz
-		tranID := fmt.Sprintf("TICKET-%d-%s", createdTicket.Id, uuid.New().String()[:8])
-		// URLs should be configured or constructed properly
-		successUrl := fmt.Sprintf("http://localhost:8080/ticket/payment/success?id=%d", createdTicket.Id)
-		failUrl := "http://localhost:8080/ticket/payment/fail"
-		cancelUrl := "http://localhost:8080/ticket/payment/cancel"
-
-		gatewayUrl, err := s.sslCommerz.InitPayment(req.Fare, tranID, successUrl, failUrl, cancelUrl)
-		if err != nil {
-			return nil, fmt.Errorf("gateway init failed: %w", err)
-		}
-
-		return &BuyTicketResponse{
-			Ticket:     createdTicket,
-			PaymentURL: gatewayUrl,
-			Message:    "Redirect to payment gateway",
+			Message: "Processing",
 		}, nil
 	}
+
+	// If it's a URL (success)
+	return &BuyTicketResponse{
+		PaymentURL: val,
+		Message:    "Ready",
+	}, nil
 }
 
 func (s *service) UpdatePaymentStatus(id int64) error {

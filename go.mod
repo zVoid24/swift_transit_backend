@@ -43,6 +43,7 @@ require (
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
 	github.com/posener/complete v1.2.3 // indirect
+	github.com/rabbitmq/amqp091-go v1.10.0 // indirect
 	github.com/rubenv/sql-migrate v1.8.0 // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e // indirect

@@ -30,6 +30,10 @@ type SSLCommerzConfig struct {
 	IsSandbox bool
 }
 
+type RabbitMQConfig struct {
+	URL string
+}
+
 type Config struct {
 	Version     string
 	HttpPort    string
@@ -38,6 +42,7 @@ type Config struct {
 	Db          DbConfig
 	RedisCnf    RedisConfig
 	SSLCommerz  SSLCommerzConfig
+	RabbitMQ    RabbitMQConfig
 }
 
 var configurations *Config
@@ -117,6 +122,9 @@ func loadConfig() {
 			StoreID:   os.Getenv("STORE_ID"),
 			StorePass: os.Getenv("STORE_PASSWORD"),
 			IsSandbox: os.Getenv("IS_SANDBOX") == "true",
+		},
+		RabbitMQ: RabbitMQConfig{
+			URL: os.Getenv("RABBITMQ_URL"),
 		},
 	}
 }

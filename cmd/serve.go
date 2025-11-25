@@ -7,6 +7,7 @@ import (
 	"swift_transit/config"
 	"swift_transit/infra/db"
 	"swift_transit/infra/payment"
+	"swift_transit/infra/rabbitmq"
 	redisConf "swift_transit/infra/redis"
 	"swift_transit/repo"
 	"swift_transit/rest"
@@ -63,7 +64,19 @@ func Start() {
 	routeSvc := route.NewService(routeRepo)
 	busSvc := bus.NewService(busRepo)
 	sslCommerz := payment.NewSSLCommerz(cnf.SSLCommerz)
-	ticketSvc := ticket.NewService(ticketRepo, userRepo, redisCon, sslCommerz, ctx)
+
+	// RabbitMQ
+	rabbitMQ, err := rabbitmq.NewConnection(cnf.RabbitMQ.URL)
+	if err != nil {
+		panic(err)
+	}
+	defer rabbitMQ.Close()
+
+	ticketSvc := ticket.NewService(ticketRepo, userRepo, redisCon, sslCommerz, rabbitMQ, ctx)
+
+	// Start Ticket Worker
+	ticketWorker := ticket.NewTicketWorker(ticketSvc, rabbitMQ)
+	go ticketWorker.Start()
 
 	userHandler := userHandler.NewHandler(usrSvc, middlewareHandler, mngr, utilHandler)
 	routeHandler := routeHandler.NewHandler(routeSvc, middlewareHandler, mngr, utilHandler)
