@@ -24,6 +24,12 @@ type RedisConfig struct {
 	DB       int
 }
 
+type SSLCommerzConfig struct {
+	StoreID   string
+	StorePass string
+	IsSandbox bool
+}
+
 type Config struct {
 	Version     string
 	HttpPort    string
@@ -31,6 +37,7 @@ type Config struct {
 	Secret      string
 	Db          DbConfig
 	RedisCnf    RedisConfig
+	SSLCommerz  SSLCommerzConfig
 }
 
 var configurations *Config
@@ -105,6 +112,11 @@ func loadConfig() {
 			Address:  redisAddress,
 			Password: redisPass,
 			DB:       redisDB,
+		},
+		SSLCommerz: SSLCommerzConfig{
+			StoreID:   os.Getenv("STORE_ID"),
+			StorePass: os.Getenv("STORE_PASSWORD"),
+			IsSandbox: os.Getenv("IS_SANDBOX") == "true",
 		},
 	}
 }

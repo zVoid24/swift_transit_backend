@@ -46,3 +46,7 @@ func (svc *service) Find(username string, password string) (*domain.User, error)
 	}
 	return usr, nil
 }
+
+func (svc *service) DeductBalance(id int64, amount float64) error {
+	return svc.userRepo.DeductBalance(id, amount)
+}

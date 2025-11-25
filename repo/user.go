@@ -106,3 +106,28 @@ func (r *userRepo) Find(userName, password string) (*domain.User, error) {
 
 	return &user, nil
 }
+
+func (r *userRepo) DeductBalance(id int64, amount float64) error {
+	tx, err := r.dbCon.Beginx()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	var balance float64
+	err = tx.Get(&balance, "SELECT balance FROM users WHERE id = $1 FOR UPDATE", id)
+	if err != nil {
+		return err
+	}
+
+	if balance < amount {
+		return fmt.Errorf("insufficient balance")
+	}
+
+	_, err = tx.Exec("UPDATE users SET balance = balance - $1 WHERE id = $2", amount, id)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
