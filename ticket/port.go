@@ -5,13 +5,12 @@ import (
 )
 
 type BuyTicketRequest struct {
-	UserId           int64   `json:"-"` // Extracted from JWT
-	RouteId          int64   `json:"route_id"`
-	BusName          string  `json:"bus_name"`
-	StartDestination string  `json:"start_destination"`
-	EndDestination   string  `json:"end_destination"`
-	Fare             float64 `json:"fare"`
-	PaymentMethod    string  `json:"payment_method"` // "wallet" or "gateway"
+	UserId           int64  `json:"-"` // Extracted from JWT
+	RouteId          int64  `json:"route_id"`
+	BusName          string `json:"bus_name"`
+	StartDestination string `json:"start_destination"`
+	EndDestination   string `json:"end_destination"`
+	PaymentMethod    string `json:"payment_method"` // "wallet" or "gateway"
 }
 
 type TicketRequestMessage struct {
@@ -43,4 +42,5 @@ type TicketRepo interface {
 	Create(ticket domain.Ticket) (*domain.Ticket, error)
 	UpdateStatus(id int64, status bool) error
 	Get(id int64) (*domain.Ticket, error)
+	CalculateFare(routeId int64, start, end string) (float64, error)
 }

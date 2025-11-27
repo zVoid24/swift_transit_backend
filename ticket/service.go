@@ -43,7 +43,13 @@ func (s *service) BuyTicket(req BuyTicketRequest) (*BuyTicketResponse, error) {
 		return nil, fmt.Errorf("invalid request")
 	}
 
-	// 2. Create a temporary ID or use a UUID for tracking the request
+	// 2. Calculate Fare
+	fare, err := s.repo.CalculateFare(req.RouteId, req.StartDestination, req.EndDestination)
+	if err != nil {
+		return nil, fmt.Errorf("failed to calculate fare: %w", err)
+	}
+
+	// 3. Create a temporary ID or use a UUID for tracking the request
 	// For simplicity, we might need to generate an ID here or let the worker handle it.
 	// However, to return a status, we need an ID.
 	// Let's generate a temporary ID or use Redis to store the initial "Processing" state.
@@ -52,14 +58,14 @@ func (s *service) BuyTicket(req BuyTicketRequest) (*BuyTicketResponse, error) {
 	// Let's generate a UUID for the tracking ID.
 	trackingID := uuid.New().String()
 
-	// 3. Publish to RabbitMQ
+	// 4. Publish to RabbitMQ
 	msg := TicketRequestMessage{
 		UserId:           req.UserId,
 		RouteId:          req.RouteId,
 		BusName:          req.BusName,
 		StartDestination: req.StartDestination,
 		EndDestination:   req.EndDestination,
-		Fare:             req.Fare,
+		Fare:             fare,
 		PaymentMethod:    req.PaymentMethod,
 	}
 	reqJSON, err := json.Marshal(msg)

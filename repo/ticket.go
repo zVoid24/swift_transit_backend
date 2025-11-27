@@ -61,3 +61,26 @@ func (r *ticketRepo) Get(id int64) (*domain.Ticket, error) {
 	}
 	return &ticket, nil
 }
+
+func (r *ticketRepo) CalculateFare(routeId int64, start, end string) (float64, error) {
+	var fare float64
+	query := `
+		SELECT 
+			GREATEST(10, (ST_Length(
+				ST_LineSubstring(
+					r.geom, 
+					ST_LineLocatePoint(r.geom, s1.geom), 
+					ST_LineLocatePoint(r.geom, s2.geom)
+				)::geography
+			) / 1000)*2.5) as fare
+		FROM routes r
+		JOIN stops s1 ON r.id = s1.route_id
+		JOIN stops s2 ON r.id = s2.route_id
+		WHERE r.id = $1 AND s1.name = $2 AND s2.name = $3
+	`
+	err := r.dbCon.Get(&fare, query, routeId, start, end)
+	if err != nil {
+		return 0, err
+	}
+	return fare, nil
+}

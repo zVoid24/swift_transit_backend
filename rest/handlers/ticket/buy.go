@@ -14,7 +14,7 @@ func (h *Handler) BuyTicket(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Basic validation
-	if req.RouteId == 0 || req.Fare <= 0 {
+	if req.RouteId == 0 {
 		h.utilHandler.SendError(w, "Invalid request parameters", http.StatusBadRequest)
 		return
 	}
